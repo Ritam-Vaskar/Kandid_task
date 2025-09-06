@@ -1,6 +1,5 @@
 'use client';
 
-import { use } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
@@ -16,7 +15,7 @@ interface PageProps {
 
 export default function CampaignDetailsPage({ params }: PageProps) {
   const { id } = params;
-  const campaign = sampleCampaigns.find(c => c.id === id);
+  const campaign = sampleCampaigns.find((c) => c.id === id);
 
   if (!campaign) {
     notFound();
@@ -25,28 +24,28 @@ export default function CampaignDetailsPage({ params }: PageProps) {
   const stats = [
     {
       title: 'Total Leads',
-      value: campaign.totalLeads,
+      value: campaign.totalLeads ?? 0,
       icon: Users,
       color: 'text-blue-600',
       bgColor: 'bg-blue-100',
     },
     {
       title: 'Request Sent',
-      value: campaign.requestSent,
+      value: campaign.requestSent ?? 0,
       icon: Send,
       color: 'text-purple-600',
       bgColor: 'bg-purple-100',
     },
     {
       title: 'Request Accepted',
-      value: campaign.requestAccepted,
+      value: campaign.requestAccepted ?? 0,
       icon: CheckCircle,
       color: 'text-green-600',
       bgColor: 'bg-green-100',
     },
     {
       title: 'Request Replied',
-      value: campaign.requestReplied,
+      value: campaign.requestReplied ?? 0,
       icon: Reply,
       color: 'text-orange-600',
       bgColor: 'bg-orange-100',
@@ -57,7 +56,7 @@ export default function CampaignDetailsPage({ params }: PageProps) {
     {
       label: 'Leads Contacted',
       value: 0,
-      max: campaign.totalLeads,
+      max: campaign.totalLeads ?? 0,
       color: 'bg-blue-500',
     },
     {
@@ -81,11 +80,8 @@ export default function CampaignDetailsPage({ params }: PageProps) {
         <div>
           <div className="flex items-center space-x-2 mb-2">
             <h1 className="text-2xl font-semibold">{campaign.name}</h1>
-            <Badge 
-              variant="secondary" 
-              className="bg-green-100 text-green-800"
-            >
-              {campaign.status}
+            <Badge variant="secondary" className="bg-green-100 text-green-800">
+              {campaign.status ?? 'N/A'}
             </Badge>
           </div>
           <p className="text-gray-600">Manage and track your campaign performance</p>
@@ -131,9 +127,7 @@ export default function CampaignDetailsPage({ params }: PageProps) {
                   <div key={item.label}>
                     <div className="flex items-center justify-between mb-2">
                       <span className="text-sm font-medium">{item.label}</span>
-                      <span className="text-sm text-gray-500">
-                        {item.value}.0%
-                      </span>
+                      <span className="text-sm text-gray-500">{item.value}.0%</span>
                     </div>
                     <Progress value={item.value} className="h-2" />
                   </div>
@@ -158,28 +152,28 @@ export default function CampaignDetailsPage({ params }: PageProps) {
                     </p>
                   </div>
                 </div>
-                {campaign.endDate && (
-                  <div className="flex items-center space-x-3">
-                    <Calendar className="h-5 w-5 text-gray-400" />
-                    <div>
-                      <p className="text-sm font-medium">
-                        End Date:{' '}
-                        {format(new Date(campaign.endDate), 'dd/MM/yyyy')}
-                      </p>
-                    </div>
+                <div className="flex items-center space-x-3">
+                  <Calendar className="h-5 w-5 text-gray-400" />
+                  <div>
+                    <p className="text-sm font-medium">
+                      End Date:{' '}
+                      {campaign.endDate
+                        ? format(new Date(campaign.endDate), 'dd/MM/yyyy')
+                        : 'N/A'}
+                    </p>
                   </div>
-                )}
+                </div>
                 <div className="flex items-center space-x-3">
                   <TrendingUp className="h-5 w-5 text-gray-400" />
                   <div>
-                    <p className="text-sm font-medium">Status: {campaign.status}</p>
+                    <p className="text-sm font-medium">Status: {campaign.status ?? 'N/A'}</p>
                   </div>
                 </div>
                 <div className="flex items-center space-x-3">
                   <TrendingUp className="h-5 w-5 text-gray-400" />
                   <div>
                     <p className="text-sm font-medium">
-                      Conversion Rate: {campaign.conversionRate}%
+                      Conversion Rate: {campaign.conversionRate ?? 0}%
                     </p>
                   </div>
                 </div>
@@ -194,7 +188,9 @@ export default function CampaignDetailsPage({ params }: PageProps) {
               <CardTitle>Campaign Leads</CardTitle>
             </CardHeader>
             <CardContent>
-              <p className="text-gray-500">Leads associated with this campaign will be displayed here.</p>
+              <p className="text-gray-500">
+                Leads associated with this campaign will be displayed here.
+              </p>
             </CardContent>
           </Card>
         </TabsContent>
