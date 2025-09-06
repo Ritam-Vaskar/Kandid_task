@@ -150,9 +150,25 @@ export default function CampaignDetailsPage({ params }: PageProps) {
                 <div className="flex items-center space-x-3">
                   <Calendar className="h-5 w-5 text-gray-400" />
                   <div>
-                    <p className="text-sm font-medium">Start Date: {format(campaign.startDate, 'dd/MM/yyyy')}</p>
+                    <p className="text-sm font-medium">
+                      Start Date:{' '}
+                      {campaign.startDate
+                        ? format(new Date(campaign.startDate), 'dd/MM/yyyy')
+                        : 'N/A'}
+                    </p>
                   </div>
                 </div>
+                {campaign.endDate && (
+                  <div className="flex items-center space-x-3">
+                    <Calendar className="h-5 w-5 text-gray-400" />
+                    <div>
+                      <p className="text-sm font-medium">
+                        End Date:{' '}
+                        {format(new Date(campaign.endDate), 'dd/MM/yyyy')}
+                      </p>
+                    </div>
+                  </div>
+                )}
                 <div className="flex items-center space-x-3">
                   <TrendingUp className="h-5 w-5 text-gray-400" />
                   <div>
@@ -162,7 +178,9 @@ export default function CampaignDetailsPage({ params }: PageProps) {
                 <div className="flex items-center space-x-3">
                   <TrendingUp className="h-5 w-5 text-gray-400" />
                   <div>
-                    <p className="text-sm font-medium">Conversion Rate: {campaign.conversionRate}%</p>
+                    <p className="text-sm font-medium">
+                      Conversion Rate: {campaign.conversionRate}%
+                    </p>
                   </div>
                 </div>
               </CardContent>

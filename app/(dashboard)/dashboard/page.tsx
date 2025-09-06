@@ -12,22 +12,33 @@ import {
   SelectValue,
 } from '@/components/ui/select';
 import { Progress } from '@/components/ui/progress';
-import { sampleCampaigns, sampleLeads, sampleLinkedinAccounts } from '@/lib/data/sample-data';
+import {
+  sampleCampaigns,
+  sampleLeads,
+  sampleLinkedinAccounts,
+} from '@/lib/data/sample-data';
 import { formatDistanceToNow } from 'date-fns';
-import { ChevronDown, Users, Send, CheckCircle, Clock, Ban } from 'lucide-react';
+import {
+  ChevronDown,
+  Users,
+  Send,
+  CheckCircle,
+  Clock,
+  Ban,
+} from 'lucide-react';
 
 export default function DashboardPage() {
   // Calculate recent activity from leads
-  const recentActivity = sampleLeads.slice(0, 8).map(lead => ({
+  const recentActivity = sampleLeads.slice(0, 8).map((lead) => ({
     id: lead.id,
     lead: {
       name: lead.name,
-      title: lead.title,
-      avatar: lead.profileImage,
+      // title: lead.title,
+      // avatar: lead.profileImage,
     },
     campaign: lead.campaignId === '3' ? 'Gynoveda' : 'BodyBuilding India',
     status: lead.status,
-    timestamp: lead.lastContactDate || lead.updatedAt,
+    timestamp: lead.lastContactDate ?? lead.updatedAt ?? new Date(),
   }));
 
   const getStatusColor = (status: string) => {
@@ -95,8 +106,8 @@ export default function DashboardPage() {
                     }`}
                   >
                     <div className="font-medium">{campaign.name}</div>
-                    <Badge 
-                      variant="secondary" 
+                    <Badge
+                      variant="secondary"
                       className="bg-green-100 text-green-800 hover:bg-green-100"
                     >
                       {campaign.status}
@@ -144,9 +155,9 @@ export default function DashboardPage() {
                     <div className="grid grid-cols-3 gap-2 items-center">
                       <div className="flex items-center space-x-2">
                         <Avatar className="h-8 w-8">
-                          <AvatarImage 
-                            src={activity.lead.avatar} 
-                            alt={activity.lead.name} 
+                          <AvatarImage
+                            // src={activity.lead.avatar || undefined}
+                            alt={activity.lead.name}
                           />
                           <AvatarFallback className="bg-gray-200 text-xs">
                             {activity.lead.name.charAt(0)}
@@ -156,30 +167,38 @@ export default function DashboardPage() {
                           <div className="text-sm font-medium truncate">
                             {activity.lead.name}
                           </div>
-                          <div className="text-xs text-gray-500 truncate">
+                          {/* <div className="text-xs text-gray-500 truncate">
                             {activity.lead.title}
-                          </div>
+                          </div> */}
                         </div>
                       </div>
                       <div className="text-sm">{activity.campaign}</div>
                       <div className="flex flex-col items-start space-y-1">
-                        <Badge 
-                          variant="secondary" 
+                        <Badge
+                          variant="secondary"
                           className={`text-xs ${getStatusColor(activity.status)}`}
                         >
                           <div className="flex items-center space-x-1">
                             {getStatusIcon(activity.status)}
                             <span className="capitalize">
-                              {activity.status === 'pending' ? 'Pending Approval' : 
-                               activity.status === 'contacted' ? 'Sent 7 mins ago' :
-                               activity.status === 'responded' ? 'Responded' :
-                               activity.status === 'converted' ? 'Converted' :
-                               'Do Not Contact'}
+                              {activity.status === 'pending'
+                                ? 'Pending Approval'
+                                : activity.status === 'contacted'
+                                ? 'Sent 7 mins ago'
+                                : activity.status === 'responded'
+                                ? 'Responded'
+                                : activity.status === 'converted'
+                                ? 'Converted'
+                                : 'Do Not Contact'}
                             </span>
                           </div>
                         </Badge>
                         <div className="text-xs text-gray-500">
-                          {formatDistanceToNow(activity.timestamp, { addSuffix: true })}
+                          {activity.timestamp
+                            ? formatDistanceToNow(new Date(activity.timestamp), {
+                                addSuffix: true,
+                              })
+                            : 'N/A'}
                         </div>
                       </div>
                     </div>
@@ -207,10 +226,16 @@ export default function DashboardPage() {
               <div></div>
             </div>
             {sampleLinkedinAccounts.map((account) => (
-              <div key={account.id} className="grid grid-cols-4 gap-4 items-center py-2">
+              <div
+                key={account.id}
+                className="grid grid-cols-4 gap-4 items-center py-2"
+              >
                 <div className="flex items-center space-x-3">
                   <Avatar className="h-10 w-10">
-                    <AvatarImage src={account.profileImage} alt={account.name} />
+                    <AvatarImage
+                      src={account.profileImage || undefined}
+                      alt={account.name}
+                    />
                     <AvatarFallback>{account.name.charAt(0)}</AvatarFallback>
                   </Avatar>
                   <div>
@@ -219,7 +244,7 @@ export default function DashboardPage() {
                   </div>
                 </div>
                 <div>
-                  <Badge 
+                  <Badge
                     variant="secondary"
                     className="bg-blue-100 text-blue-800"
                   >
@@ -230,8 +255,12 @@ export default function DashboardPage() {
                   <div className="text-sm">
                     {account.requestsUsed}/{account.requestsLimit}
                   </div>
-                  <Progress 
-                    value={(account.requestsUsed / account.requestsLimit) * 100} 
+                  <Progress
+                    value={
+                      account.requestsLimit > 0
+                        ? (account.requestsUsed / account.requestsLimit) * 100
+                        : 0
+                    }
                     className="h-2"
                   />
                 </div>

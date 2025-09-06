@@ -7,16 +7,16 @@ import { Button } from '@/components/ui/button';
 import Link from 'next/link';
 
 export default function HomePage() {
-  const { data: session, isLoading } = useSession();
+  const { data: session, isPending } = useSession();
   const router = useRouter();
 
   useEffect(() => {
-    if (!isLoading && session) {
+    if (!isPending && session) {
       router.push('/dashboard');
     }
-  }, [session, isLoading, router]);
+  }, [session, isPending, router]);
 
-  if (isLoading) {
+  if (isPending) {
     return (
       <div className="min-h-screen flex items-center justify-center">
         <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600"></div>
