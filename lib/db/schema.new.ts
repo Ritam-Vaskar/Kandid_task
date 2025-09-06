@@ -65,10 +65,6 @@ export type User = typeof users.$inferSelect;
 export type Campaign = typeof campaigns.$inferSelect;
 export type Lead = typeof leads.$inferSelect;
 
-export type LeadWithRelations = Lead & {
-  campaign?: Campaign;
-};
-
 export type NewUser = typeof users.$inferInsert;
 export type NewCampaign = typeof campaigns.$inferInsert;
 export type NewLead = typeof leads.$inferInsert;

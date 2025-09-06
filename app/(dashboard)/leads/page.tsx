@@ -1,6 +1,7 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
+import { useInfiniteQuery } from '@tanstack/react-query';
 import { Card, CardContent, CardHeader } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -15,10 +16,27 @@ import {
 } from '@/components/ui/select';
 import { Sheet, SheetContent, SheetHeader, SheetTitle } from '@/components/ui/sheet';
 import { useLeadsStore } from '@/lib/stores/leads';
-import { sampleLeads, sampleCampaigns } from '@/lib/data/sample-data';
+import { useInView } from 'react-intersection-observer';
 import { formatDistanceToNow } from 'date-fns';
-import { Search, ChevronDown, ArrowUpDown, X, ExternalLink, Clock, CheckCircle, MessageSquare, UserCheck } from 'lucide-react';
-import Link from 'next/link';
+import { fetchLeads, leadsKeys } from '@/lib/api/leads';
+import type { LeadWithRelations } from '@/lib/db/schema';
+import {
+  Search,
+  Plus,
+  UserPlus2,
+  MailCheck,
+  Building2,
+  ChevronDown,
+  ArrowUpDown,
+  Clock,
+  CheckCircle,
+  MessageSquare,
+  UserCheck,
+  X,
+  ExternalLink,
+} from 'lucide-react';
+
+
 
 export default function LeadsPage() {
   const {
@@ -32,52 +50,72 @@ export default function LeadsPage() {
     setStatusFilter,
   } = useLeadsStore();
 
+  const { ref, inView } = useInView();
+
+  const {
+    data,
+    isLoading,
+    isFetchingNextPage,
+    fetchNextPage,
+    hasNextPage,
+  } = useInfiniteQuery({
+    queryKey: leadsKeys.list({}),
+    queryFn: ({ pageParam = 1 }) => fetchLeads(),
+    getNextPageParam: (lastPage: LeadWithRelations[], pages) => {
+      if (lastPage.length === 0) return undefined;
+      return pages.length + 1;
+    },
+    initialPageParam: 1,
+  });
+
   const [sortField, setSortField] = useState<'name' | 'campaign' | 'status' | 'lastContact'>('lastContact');
   const [sortOrder, setSortOrder] = useState<'asc' | 'desc'>('desc');
 
-  // Filter and sort leads
-  const filteredLeads = sampleLeads
-    .filter((lead) => {
-      const matchesSearch = lead.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
-                           lead.company?.toLowerCase().includes(searchQuery.toLowerCase()) ||
-                           lead.title?.toLowerCase().includes(searchQuery.toLowerCase());
-      const matchesStatus = statusFilter === 'all' || lead.status === statusFilter;
-      return matchesSearch && matchesStatus;
-    })
-    .sort((a, b) => {
-      let aValue, bValue;
-      
-      switch (sortField) {
-        case 'name':
-          aValue = a.name.toLowerCase();
-          bValue = b.name.toLowerCase();
-          break;
-        case 'campaign':
-          const aCampaign = sampleCampaigns.find(c => c.id === a.campaignId)?.name || '';
-          const bCampaign = sampleCampaigns.find(c => c.id === b.campaignId)?.name || '';
-          aValue = aCampaign.toLowerCase();
-          bValue = bCampaign.toLowerCase();
-          break;
-        case 'status':
-          aValue = a.status;
-          bValue = b.status;
-          break;
-        case 'lastContact':
-          aValue = a.lastContactDate?.getTime() || 0;
-          bValue = b.lastContactDate?.getTime() || 0;
-          break;
-        default:
-          return 0;
-      }
-      
-      if (sortOrder === 'asc') {
-        return aValue > bValue ? 1 : -1;
-      } else {
-        return aValue < bValue ? 1 : -1;
-      }
-    });
+  useEffect(() => {
+    if (inView && hasNextPage) {
+      fetchNextPage();
+    }
+  }, [inView, hasNextPage, fetchNextPage]);
 
-  const handleLeadClick = (lead: typeof sampleLeads[0]) => {
+  const leads = data?.pages.flatMap((page) => page) ?? [];
+  const filteredLeads = (leads as unknown as LeadWithRelations[]).filter((lead) => {
+    const matchesSearch = lead.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
+                       lead.company?.toLowerCase().includes(searchQuery.toLowerCase()) ||
+                       lead.email?.toLowerCase().includes(searchQuery.toLowerCase());
+    const matchesStatus = statusFilter === 'all' || lead.status === statusFilter;
+    return matchesSearch && matchesStatus;
+  }).sort((a, b) => {
+    let aValue: string | number, bValue: string | number;
+    
+    switch (sortField) {
+      case 'name':
+        aValue = a.name.toLowerCase();
+        bValue = b.name.toLowerCase();
+        break;
+      case 'campaign':
+        aValue = a.campaign?.name.toLowerCase() || '';
+        bValue = b.campaign?.name.toLowerCase() || '';
+        break;
+      case 'status':
+        aValue = a.status;
+        bValue = b.status;
+        break;
+      case 'lastContact':
+        aValue = a.lastContactDate?.getTime() || 0;
+        bValue = b.lastContactDate?.getTime() || 0;
+        break;
+      default:
+        return 0;
+    }
+    
+    if (sortOrder === 'asc') {
+      return aValue > bValue ? 1 : -1;
+    } else {
+      return aValue < bValue ? 1 : -1;
+    }
+  });
+
+  const handleLeadClick = (lead: LeadWithRelations) => {
     setSelectedLead(lead);
     setLeadDetailOpen(true);
   };
@@ -104,8 +142,7 @@ export default function LeadsPage() {
     }
   };
 
-  const getCampaignName = (campaignId: string) => {
-    const campaign = sampleCampaigns.find(c => c.id === campaignId);
+  const getCampaignName = (campaignId: string, campaign?: { id: string; name: string } | null) => {
     return campaign?.name || 'Unknown Campaign';
   };
 
@@ -190,28 +227,23 @@ export default function LeadsPage() {
               >
                 <div className="col-span-4 flex items-center space-x-3">
                   <Avatar className="h-10 w-10">
-                    <AvatarImage src={lead.profileImage} alt={lead.name} />
+                    <AvatarImage src={''} alt={lead.name} />
                     <AvatarFallback className="bg-gray-200">
-                      {lead.name.split(' ').map(n => n[0]).join('').toUpperCase()}
+                      {lead.name.split(' ').map((n: string) => n[0]).join('').toUpperCase()}
                     </AvatarFallback>
                   </Avatar>
                   <div>
                     <div className="font-medium">{lead.name}</div>
-                    <div className="text-sm text-gray-500">{lead.title}</div>
+                    <div className="text-sm text-gray-500">{lead.company || 'No company'}</div>
                   </div>
                 </div>
                 <div className="col-span-3">
-                  <span className="text-sm">{getCampaignName(lead.campaignId)}</span>
+                  <span className="text-sm">{getCampaignName(lead.campaignId, lead.campaign)}</span>
                 </div>
                 <div className="col-span-2">
-                  <div className="flex space-x-1">
-                    {[1, 2, 3, 4].map((bar) => (
-                      <div
-                        key={bar}
-                        className="w-1 h-6 bg-yellow-400 rounded-sm"
-                      />
-                    ))}
-                  </div>
+                  <Badge variant="secondary" className={getStatusColor(lead.status)}>
+                    {lead.status}
+                  </Badge>
                 </div>
                 <div className="col-span-3">
                   <div className="flex items-center space-x-2">
@@ -249,77 +281,71 @@ export default function LeadsPage() {
                 {/* Profile Section */}
                 <div className="flex items-start space-x-4">
                   <Avatar className="h-16 w-16">
-                    <AvatarImage src={selectedLead.profileImage} alt={selectedLead.name} />
+                    <AvatarImage src={''} alt={selectedLead.name} />
                     <AvatarFallback className="bg-gray-200 text-lg">
-                      {selectedLead.name.split(' ').map(n => n[0]).join('').toUpperCase()}
+                      {selectedLead.name.split(' ').map((n: string) => n[0]).join('').toUpperCase()}
                     </AvatarFallback>
                   </Avatar>
                   <div className="flex-1">
                     <div className="flex items-center space-x-2 mb-2">
                       <h3 className="text-xl font-semibold">{selectedLead.name}</h3>
-                      <ExternalLink className="h-4 w-4 text-gray-400" />
+                      {selectedLead.linkedinUrl && (
+                        <a href={selectedLead.linkedinUrl} target="_blank" rel="noopener noreferrer">
+                          <ExternalLink className="h-4 w-4 text-gray-400 hover:text-blue-600" />
+                        </a>
+                      )}
                       <Button variant="ghost" size="icon" className="h-6 w-6 text-red-500">
                         <X className="h-4 w-4" />
                       </Button>
                     </div>
-                    <p className="text-gray-600 mb-1">{selectedLead.title}</p>
-                    <p className="text-gray-600 mb-3">at {selectedLead.company}</p>
+                    <p className="text-gray-600 mb-1">{selectedLead.company}</p>
+                    <p className="text-gray-600 mb-3">{selectedLead.email || 'No email'}</p>
                     <div className="flex items-center space-x-4 text-sm text-gray-500">
                       <div className="flex items-center space-x-1">
                         <span>👥</span>
-                        <span>{getCampaignName(selectedLead.campaignId)}</span>
+                        <span>{getCampaignName(selectedLead.campaignId, selectedLead.campaign)}</span>
                       </div>
                       <div className="flex items-center space-x-1">
                         <Clock className="h-4 w-4" />
-                        <span>Sent 7 mins ago</span>
+                        <span>
+                          {selectedLead.lastContactDate 
+                            ? formatDistanceToNow(new Date(selectedLead.lastContactDate), { addSuffix: true })
+                            : 'Never contacted'}
+                        </span>
                       </div>
                     </div>
                   </div>
                 </div>
 
                 {/* Additional Profile Info */}
-                <div className="bg-gray-50 rounded-lg p-4">
-                  <Button
-                    variant="ghost"
-                    className="w-full justify-between text-gray-600"
-                  >
-                    Additional Profile Info
-                    <ChevronDown className="h-4 w-4" />
-                  </Button>
+                <div className="bg-gray-50 rounded-lg p-4 space-y-4">
+                  <div>
+                    <h4 className="text-sm font-semibold text-gray-600">Status</h4>
+                    <Badge variant="secondary" className={getStatusColor(selectedLead.status)}>
+                      {selectedLead.status}
+                    </Badge>
+                  </div>
+                  {selectedLead.notes && (
+                    <div>
+                      <h4 className="text-sm font-semibold text-gray-600">Notes</h4>
+                      <p className="text-sm text-gray-800">{selectedLead.notes}</p>
+                    </div>
+                  )}
                 </div>
 
                 {/* Activity Timeline */}
                 <div className="space-y-4">
-                  {selectedLead.activityData && JSON.parse(selectedLead.activityData).length > 0 ? (
-                    JSON.parse(selectedLead.activityData).map((activity: any, index: number) => (
-                      <div key={index} className="flex items-start space-x-4">
-                        <div className="mt-1">
-                          {getActivityIcon(activity.type)}
-                        </div>
-                        <div className="flex-1 min-w-0">
-                          <div className="flex items-center space-x-2 mb-1">
-                            <h4 className="font-medium">{activity.title}</h4>
-                            <span className="text-xs text-gray-500">
-                              {formatDistanceToNow(new Date(activity.timestamp), { addSuffix: true })}
-                            </span>
-                          </div>
-                          <p className="text-gray-600 text-sm mb-2">
-                            Message: {activity.message}
-                            {activity.message.length > 50 && (
-                              <Button variant="link" className="p-0 h-auto text-blue-600 text-sm">
-                                See More
-                              </Button>
-                            )}
-                          </p>
-                          <div className="w-px h-6 bg-gray-200 ml-2"></div>
-                        </div>
-                      </div>
-                    ))
-                  ) : (
-                    <div className="text-center py-8 text-gray-500">
-                      No activity data available
-                    </div>
-                  )}
+                  <div className="flex items-center space-x-2">
+                    <h4 className="text-sm font-semibold text-gray-600">Last Contact</h4>
+                    <span className="text-sm text-gray-800">
+                      {selectedLead.lastContactDate 
+                        ? formatDistanceToNow(new Date(selectedLead.lastContactDate), { addSuffix: true }) 
+                        : 'Never'}
+                    </span>
+                  </div>
+                  <div className="text-gray-500 text-sm">
+                    No activity tracking available yet
+                  </div>
                 </div>
               </div>
             </div>

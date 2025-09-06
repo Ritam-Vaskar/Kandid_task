@@ -1,14 +1,14 @@
 'use client';
 
 import { create } from 'zustand';
-import type { Lead } from '@/lib/db/schema';
+import type { LeadWithRelations } from '@/lib/db/schema';
 
 interface LeadsStore {
-  selectedLead: Lead | null;
+  selectedLead: LeadWithRelations | null;
   isLeadDetailOpen: boolean;
   searchQuery: string;
   statusFilter: string;
-  setSelectedLead: (lead: Lead | null) => void;
+  setSelectedLead: (lead: LeadWithRelations | null) => void;
   setLeadDetailOpen: (open: boolean) => void;
   setSearchQuery: (query: string) => void;
   setStatusFilter: (status: string) => void;

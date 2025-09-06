@@ -13,9 +13,12 @@ import {
   SelectValue,
 } from '@/components/ui/select';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { sampleCampaigns } from '@/lib/data/sample-data';
 import { Search, Plus, Users, Send, CheckCircle, Reply, MoreHorizontal, Eye } from 'lucide-react';
 import Link from 'next/link';
+import { useQuery } from '@tanstack/react-query';
+import { fetchCampaigns } from '@/lib/api/campaigns';
+import { useUIStore } from '@/lib/store/ui';
+import { Skeleton } from '@/components/ui/skeleton';
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -24,12 +27,16 @@ import {
 } from '@/components/ui/dropdown-menu';
 
 export default function CampaignsPage() {
-  const [searchQuery, setSearchQuery] = useState('');
-  const [statusFilter, setStatusFilter] = useState('all');
+  const { searchQuery, statusFilter, setSearchQuery, setStatusFilter } = useUIStore();
   const [activeTab, setActiveTab] = useState('all');
 
+  const { data: campaigns = [], isLoading, error } = useQuery({
+    queryKey: ['campaigns'],
+    queryFn: fetchCampaigns,
+  });
+
   // Filter campaigns based on search and status
-  const filteredCampaigns = sampleCampaigns.filter((campaign) => {
+  const filteredCampaigns = campaigns.filter((campaign) => {
     const matchesSearch = campaign.name.toLowerCase().includes(searchQuery.toLowerCase());
     const matchesStatus = statusFilter === 'all' || campaign.status === statusFilter;
     const matchesTab = activeTab === 'all' || campaign.status === activeTab;
@@ -137,109 +144,135 @@ export default function CampaignsPage() {
           </div>
         </CardHeader>
         <CardContent className="p-0">
-          <div className="space-y-0">
-            {filteredCampaigns.map((campaign, index) => (
-              <div
-                key={campaign.id}
-                className={`p-4 grid grid-cols-12 gap-4 items-center hover:bg-gray-50 ${
-                  index !== filteredCampaigns.length - 1 ? 'border-b' : ''
-                }`}
-              >
-                {/* Campaign Name */}
-                <div className="col-span-3">
-                  <Link 
-                    href={`/campaigns/${campaign.id}`}
-                    className="font-medium hover:text-blue-600 transition-colors"
-                  >
-                    {campaign.name}
-                  </Link>
+          {isLoading ? (
+            // Loading skeleton
+            <div className="space-y-4 p-4">
+              {[1, 2, 3].map((i) => (
+                <div key={i} className="grid grid-cols-12 gap-4">
+                  <Skeleton className="h-8 col-span-3" />
+                  <Skeleton className="h-8 col-span-1" />
+                  <Skeleton className="h-8 col-span-2" />
+                  <Skeleton className="h-8 col-span-2" />
+                  <Skeleton className="h-8 col-span-3" />
+                  <Skeleton className="h-8 col-span-1" />
                 </div>
-
-                {/* Status */}
-                <div className="col-span-1">
-                  <Badge 
-                    variant="secondary" 
-                    className={`${getStatusColor(campaign.status || '')} capitalize`}
-                  >
-                    {campaign.status || 'Unknown'}
-                  </Badge>
-                </div>
-
-                {/* Total Leads */}
-                <div className="col-span-2">
-                  <div className="flex items-center space-x-2">
-                    {getStatusIcon('pending', campaign.totalLeads)}
-                    <span className="font-medium">{campaign.totalLeads}</span>
+              ))}
+            </div>
+          ) : error ? (
+            // Error state
+            <div className="p-4 text-center text-red-600">
+              Failed to load campaigns. Please try again.
+            </div>
+          ) : (
+            // Data loaded
+            <div className="space-y-0">
+              {filteredCampaigns.map((campaign, index) => (
+                <div
+                  key={campaign.id}
+                  className={`p-4 grid grid-cols-12 gap-4 items-center hover:bg-gray-50 ${
+                    index !== filteredCampaigns.length - 1 ? 'border-b' : ''
+                  }`}
+                >
+                  {/* Campaign Name */}
+                  <div className="col-span-3">
+                    <Link 
+                      href={`/campaigns/${campaign.id}`}
+                      className="font-medium hover:text-blue-600 transition-colors"
+                    >
+                      {campaign.name}
+                    </Link>
                   </div>
-                </div>
 
-                {/* Request Status */}
-                <div className="col-span-2">
-                  <div className="flex items-center space-x-4">
-                    <div className="flex items-center space-x-1 text-green-600">
-                      {getStatusIcon('accepted', 0)}
-                      <span className="text-sm">0</span>
-                    </div>
-                    <div className="flex items-center space-x-1 text-yellow-600">
-                      {getStatusIcon('pending', campaign.totalLeads)}
-                      <span className="text-sm">{campaign.totalLeads}</span>
-                    </div>
-                    <div className="flex items-center space-x-1 text-red-600">
-                      {getStatusIcon('replied', 0)}
-                      <span className="text-sm">0</span>
-                    </div>
+                  {/* Status */}
+                  <div className="col-span-1">
+                    <Badge 
+                      variant="secondary" 
+                      className={`${getStatusColor(campaign.status)} capitalize`}
+                    >
+                      {campaign.status}
+                    </Badge>
                   </div>
-                </div>
 
-                {/* Connection Status */}
-                <div className="col-span-3">
-                  <div className="flex items-center space-x-4">
-                    <div className="flex items-center space-x-1 text-blue-600">
-                      {getStatusIcon('connected', 0)}
-                      <span className="text-sm">0</span>
-                    </div>
-                    <div className="flex items-center space-x-1 text-gray-600">
-                      <Eye className="h-4 w-4" />
-                      <span className="text-sm">0</span>
+                  {/* Total Leads */}
+                  <div className="col-span-2">
+                    <div className="flex items-center space-x-2">
+                      {getStatusIcon('pending', campaign.totalLeads || 0)}
+                      <span className="font-medium">{campaign.totalLeads || 0}</span>
                     </div>
                   </div>
-                </div>
 
-                {/* Actions */}
-                <div className="col-span-1">
-                  <DropdownMenu>
-                    <DropdownMenuTrigger asChild>
-                      <Button variant="ghost" size="icon">
-                        <MoreHorizontal className="h-4 w-4" />
-                      </Button>
-                    </DropdownMenuTrigger>
-                    <DropdownMenuContent align="end">
-                      <DropdownMenuItem asChild>
-                        <Link href={`/campaigns/${campaign.id}`}>
-                          View Details
-                        </Link>
-                      </DropdownMenuItem>
-                      <DropdownMenuItem>Edit Campaign</DropdownMenuItem>
-                      <DropdownMenuItem>Pause Campaign</DropdownMenuItem>
-                      <DropdownMenuItem className="text-red-600">
-                        Delete Campaign
-                      </DropdownMenuItem>
-                    </DropdownMenuContent>
-                  </DropdownMenu>
+                  {/* Request Status */}
+                  <div className="col-span-2">
+                    <div className="flex items-center space-x-4">
+                      <div className="flex items-center space-x-1 text-green-600">
+                        {getStatusIcon('accepted', campaign.requestAccepted || 0)}
+                        <span className="text-sm">{campaign.requestAccepted || 0}</span>
+                      </div>
+                      <div className="flex items-center space-x-1 text-yellow-600">
+                        {getStatusIcon('pending', campaign.requestSent || 0)}
+                        <span className="text-sm">{campaign.requestSent || 0}</span>
+                      </div>
+                      <div className="flex items-center space-x-1 text-red-600">
+                        {getStatusIcon('replied', campaign.requestReplied || 0)}
+                        <span className="text-sm">{campaign.requestReplied || 0}</span>
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Connection Status */}
+                  <div className="col-span-3">
+                    <div className="flex items-center space-x-4">
+                      <div className="flex items-center space-x-1 text-blue-600">
+                        {getStatusIcon('connected', campaign.requestAccepted || 0)}
+                        <span className="text-sm">{campaign.requestAccepted || 0}</span>
+                      </div>
+                      <div className="flex items-center space-x-1 text-gray-600">
+                        <Eye className="h-4 w-4" />
+                        <span className="text-sm">{campaign.requestSent || 0}</span>
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Actions */}
+                  <div className="col-span-1">
+                    <DropdownMenu>
+                      <DropdownMenuTrigger asChild>
+                        <Button variant="ghost" size="icon">
+                          <MoreHorizontal className="h-4 w-4" />
+                        </Button>
+                      </DropdownMenuTrigger>
+                      <DropdownMenuContent align="end">
+                        <DropdownMenuItem asChild>
+                          <Link href={`/campaigns/${campaign.id}`}>
+                            View Details
+                          </Link>
+                        </DropdownMenuItem>
+                        <DropdownMenuItem>Edit Campaign</DropdownMenuItem>
+                        <DropdownMenuItem>
+                          {campaign.status === 'active' ? 'Pause' : 'Resume'} Campaign
+                        </DropdownMenuItem>
+                        <DropdownMenuItem className="text-red-600">
+                          Delete Campaign
+                        </DropdownMenuItem>
+                      </DropdownMenuContent>
+                    </DropdownMenu>
+                  </div>
                 </div>
-              </div>
-            ))}
-          </div>
+              ))}
+            </div>
+          )}
         </CardContent>
       </Card>
 
-      {/* Loading indicator for infinite scroll (placeholder) */}
-      <div className="text-center py-4 text-gray-500">
-        <div className="flex items-center justify-center space-x-2">
-          <div className="h-4 w-4 animate-spin rounded-full border-2 border-gray-300 border-t-blue-600"></div>
-          <span>Loading more campaigns...</span>
+      {/* Loading indicator for infinite scroll */}
+      {isLoading && (
+        <div className="text-center py-4 text-gray-500">
+          <div className="flex items-center justify-center space-x-2">
+            <div className="h-4 w-4 animate-spin rounded-full border-2 border-gray-300 border-t-blue-600"></div>
+            <span>Loading campaigns...</span>
+          </div>
         </div>
-      </div>
+      )}
     </div>
   );
 }
