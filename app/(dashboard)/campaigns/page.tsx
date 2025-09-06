@@ -37,8 +37,8 @@ export default function CampaignsPage() {
     return matchesSearch && matchesStatus && matchesTab;
   });
 
-  const getStatusColor = (status: string) => {
-    switch (status) {
+  const getStatusColor = (status: string | null) => {
+    switch (status?.toLowerCase()) {
       case 'active':
         return 'bg-green-100 text-green-800 border-green-200';
       case 'draft':
@@ -159,9 +159,9 @@ export default function CampaignsPage() {
                 <div className="col-span-1">
                   <Badge 
                     variant="secondary" 
-                    className={`${getStatusColor(campaign.status)} capitalize`}
+                    className={`${getStatusColor(campaign.status || '')} capitalize`}
                   >
-                    {campaign.status}
+                    {campaign.status || 'Unknown'}
                   </Badge>
                 </div>
 
