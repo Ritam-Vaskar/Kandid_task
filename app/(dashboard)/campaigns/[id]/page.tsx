@@ -24,28 +24,28 @@ export default function CampaignDetailsPage({ params }: PageProps) {
   const stats = [
     {
       title: 'Total Leads',
-      value: campaign.totalLeads ?? 0,
+      value: campaign.totalLeads || 0,
       icon: Users,
       color: 'text-blue-600',
       bgColor: 'bg-blue-100',
     },
     {
       title: 'Request Sent',
-      value: campaign.requestSent ?? 0,
+      value: campaign.requestSent || 0,
       icon: Send,
       color: 'text-purple-600',
       bgColor: 'bg-purple-100',
     },
     {
       title: 'Request Accepted',
-      value: campaign.requestAccepted ?? 0,
+      value: campaign.requestAccepted || 0,
       icon: CheckCircle,
       color: 'text-green-600',
       bgColor: 'bg-green-100',
     },
     {
       title: 'Request Replied',
-      value: campaign.requestReplied ?? 0,
+      value: campaign.requestReplied || 0,
       icon: Reply,
       color: 'text-orange-600',
       bgColor: 'bg-orange-100',
@@ -55,19 +55,19 @@ export default function CampaignDetailsPage({ params }: PageProps) {
   const progressData = [
     {
       label: 'Leads Contacted',
-      value: 0,
-      max: campaign.totalLeads ?? 0,
+      value: campaign.totalLeads > 0 ? (campaign.requestSent / campaign.totalLeads) * 100 : 0,
+      max: 100,
       color: 'bg-blue-500',
     },
     {
       label: 'Acceptance Rate',
-      value: 0,
+      value: campaign.requestSent > 0 ? (campaign.requestAccepted / campaign.requestSent) * 100 : 0,
       max: 100,
       color: 'bg-green-500',
     },
     {
       label: 'Reply Rate',
-      value: 0,
+      value: campaign.requestSent > 0 ? (campaign.requestReplied / campaign.requestSent) * 100 : 0,
       max: 100,
       color: 'bg-purple-500',
     },
@@ -127,7 +127,7 @@ export default function CampaignDetailsPage({ params }: PageProps) {
                   <div key={item.label}>
                     <div className="flex items-center justify-between mb-2">
                       <span className="text-sm font-medium">{item.label}</span>
-                      <span className="text-sm text-gray-500">{item.value}.0%</span>
+                      <span className="text-sm text-gray-500">{item.value.toFixed(1)}%</span>
                     </div>
                     <Progress value={item.value} className="h-2" />
                   </div>
@@ -146,8 +146,8 @@ export default function CampaignDetailsPage({ params }: PageProps) {
                   <div>
                     <p className="text-sm font-medium">
                       Start Date:{' '}
-                      {campaign.startDate
-                        ? format(new Date(campaign.startDate), 'dd/MM/yyyy')
+                      {campaign.startDate instanceof Date
+                        ? format(campaign.startDate, 'dd/MM/yyyy')
                         : 'N/A'}
                     </p>
                   </div>
@@ -157,8 +157,8 @@ export default function CampaignDetailsPage({ params }: PageProps) {
                   <div>
                     <p className="text-sm font-medium">
                       End Date:{' '}
-                      {campaign.endDate
-                        ? format(new Date(campaign.endDate), 'dd/MM/yyyy')
+                      {campaign.endDate instanceof Date
+                        ? format(campaign.endDate, 'dd/MM/yyyy')
                         : 'N/A'}
                     </p>
                   </div>
@@ -173,7 +173,7 @@ export default function CampaignDetailsPage({ params }: PageProps) {
                   <TrendingUp className="h-5 w-5 text-gray-400" />
                   <div>
                     <p className="text-sm font-medium">
-                      Conversion Rate: {campaign.conversionRate ?? 0}%
+                      Conversion Rate: {parseFloat(campaign.conversionRate || "0").toFixed(2)}%
                     </p>
                   </div>
                 </div>
