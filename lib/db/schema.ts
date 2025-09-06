@@ -2,6 +2,24 @@ import { pgTable, text, integer, timestamp, boolean, decimal } from "drizzle-orm
 import { createId } from "@paralleldrive/cuid2";
 import { relations, InferModel } from "drizzle-orm";
 
+// LinkedIn account table
+export const linkedinAccounts = pgTable("linkedin_account", {
+  id: text("id").primaryKey().$defaultFn(() => createId()),
+  userId: text("userId").notNull().references(() => users.id, { onDelete: "cascade" }),
+  name: text("name").notNull(),
+  email: text("email").notNull(),
+  status: text("status").notNull().default("active"),
+  accessToken: text("access_token"),
+  refreshToken: text("refresh_token"),
+  expiresAt: timestamp("expires_at"),
+  profileUrl: text("profile_url"),
+  profileImage: text("profile_image"),
+  requestsUsed: integer("requests_used").notNull().default(0),
+  requestsLimit: integer("requests_limit").notNull().default(100),
+  createdAt: timestamp("createdAt").defaultNow().notNull(),
+  updatedAt: timestamp("updatedAt").defaultNow().notNull(),
+});
+
 // Auth tables required by better-auth
 export const users = pgTable("user", {
   id: text("id").primaryKey().$defaultFn(() => createId()),
@@ -22,7 +40,7 @@ export const campaigns = pgTable("campaign", {
   requestSent: integer("request_sent").notNull().default(0),
   requestAccepted: integer("request_accepted").notNull().default(0),
   requestReplied: integer("request_replied").notNull().default(0),
-  conversionRate: decimal("conversion_rate").notNull().default("0"),
+  conversionRate: decimal("conversion_rate", { precision: 5, scale: 2 }).notNull().default("0"),
   startDate: timestamp("start_date"),
   endDate: timestamp("end_date"),
   userId: text("userId").notNull().references(() => users.id, { onDelete: "cascade" }),
@@ -60,10 +78,18 @@ export const leadsRelations = relations(leads, ({ one }) => ({
   }),
 }));
 
+export const linkedinAccountsRelations = relations(linkedinAccounts, ({ one }) => ({
+  user: one(users, {
+    fields: [linkedinAccounts.userId],
+    references: [users.id],
+  }),
+}));
+
 // Types
 export type User = typeof users.$inferSelect;
 export type Campaign = typeof campaigns.$inferSelect;
 export type Lead = typeof leads.$inferSelect;
+export type LinkedinAccount = typeof linkedinAccounts.$inferSelect;
 
 export type LeadWithRelations = Lead & {
   campaign?: Campaign;
@@ -72,3 +98,4 @@ export type LeadWithRelations = Lead & {
 export type NewUser = typeof users.$inferInsert;
 export type NewCampaign = typeof campaigns.$inferInsert;
 export type NewLead = typeof leads.$inferInsert;
+export type NewLinkedinAccount = typeof linkedinAccounts.$inferInsert;
