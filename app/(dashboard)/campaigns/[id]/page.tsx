@@ -11,11 +11,11 @@ import { format } from 'date-fns';
 import { notFound } from 'next/navigation';
 
 interface PageProps {
-  params: Promise<{ id: string }>;
+  params: { id: string };
 }
 
 export default function CampaignDetailsPage({ params }: PageProps) {
-  const { id } = use(params);
+  const { id } = params;
   const campaign = sampleCampaigns.find(c => c.id === id);
 
   if (!campaign) {
